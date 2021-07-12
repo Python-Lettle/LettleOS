@@ -34,7 +34,9 @@ LDFlags         = -m elf_i386 -Ttext $(KERNEL_ENTRY_POINT_PHY_ADDR)
 LettleOSBoot   = $(tb)/boot.bin $(tb)/loader.bin
 LettleOSKernel = $(tk)/kernel.bin
 
-KernelObjs = $(tk)/kernel.o $(tk)/main.o
+KernelObjs = $(tk)/kernel.o $(tk)/kernel_func.o $(tk)/main.o
+
+Objs = $(KernelObjs)
 
 .PHONY: nop all write run clean
 
@@ -44,7 +46,7 @@ nop:
 	@echo "clean        清理所有编译文件"
 	@echo "run          用qemu启动虚拟机"
 
-all: $(LettleOSBoot)
+all: $(LettleOSBoot) $(LettleOSKernel)
 
 write: $(FD) $(tb)/boot.bin
 	dd if=$(tb)/boot.bin of=$(FD) bs=512 count=1 conv=notrunc
@@ -61,6 +63,9 @@ clean:
 $(FD):
 	dd if=/dev/zero of=$(FD) bs=512 count=2880
 
+#==============================================================================
+# Boot
+#==============================================================================
 # Boot程序生成规则
 $(tb)/boot.bin:	$(sbi)/fat12hdr.inc
 $(tb)/boot.bin: $(sb)/boot.asm
@@ -70,6 +75,26 @@ $(tb)/boot.bin: $(sb)/boot.asm
 $(tb)/loader.bin: $(sbi)/fat12hdr.inc $(sbi)/load.inc
 $(tb)/loader.bin: $(sb)/loader.asm
 	$(ASM) $(ASMFlagsOfBoot) -o $@ $<
+
+#==============================================================================
+# Kernel
+#==============================================================================
+# Kernel生成规则
+#------------------------------------------------------------------------------
+$(LettleOSKernel): $(Objs)
+	$(LD) $(LDFlags) -o $(LettleOSKernel) $^
+
+#------------------------------------------------------------------------------
+# 中间obj生成
+#------------------------------------------------------------------------------
+$(tk)/kernel.o: $(sb)/kernel.asm
+	$(ASM) $(ASMFlagsOfKernel) -o $@ $<
+
+$(tk)/main.o: $(sk)/main.c
+	$(CC) $(CFlags) -o $@ $<
+
+$(tk)/kernel_func.o: $(sb)/kernel_func.asm
+	$(ASM) $(ASMFlagsOfKernel) -o $@ $<
 
 
 
