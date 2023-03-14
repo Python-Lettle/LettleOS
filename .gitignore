@@ -10,8 +10,8 @@
 *.img
 *.iso
 
-target/boot/*
-target/kernel/*
-target/lib/*
+target/*
 
 .idea
+
+LettleOS
