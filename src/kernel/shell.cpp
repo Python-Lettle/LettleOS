@@ -20,7 +20,7 @@ int Shell::exec(string command)
 	return 1;
 }
 
-Shell::Shell() : memBlock(20480)
+Shell::Shell() : memBlock(20, 1)
 {
 	std::cout << "Welcome to Lettle console!" << std::endl;
 }

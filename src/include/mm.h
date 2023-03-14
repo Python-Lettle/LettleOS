@@ -11,15 +11,18 @@
 typedef struct MemPage
 {
 	int pageId;					// Page id in a segment
-	int size;						// The page's length (Byte)
+	int state;					// The state of the page
+	int size;						// The page's length (KB)
 	BYTE* start;				// The page's start address
 }MemPage;
 
+// Segment Table Item
 typedef struct MemSeg
 {
 	int segId;					// Segment id
+	int state;					// The state of the segment
 	BYTE* start;				// The start address of this segment
-	int size;						// The seg's length (Byte)
+	int size;						// The seg's length (KB)
 	MemPage* pages;			// Memory page table (array: len=pageNum)
 	int pageNum;				// The number of pages
 }MemSeg;
@@ -31,10 +34,11 @@ private:
 	int capacity;
 	int segNum;
 	MemSeg* segs;
+	int pageSize;				// Each page size (KB)
 
 public:
 	MemoryManager();
-	MemoryManager(int size);
+	MemoryManager(int,int);
 	~MemoryManager();
 
 	// Show the map of your memory.
