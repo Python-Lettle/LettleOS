@@ -1,32 +1,65 @@
+# Compiler and linker options
+CC = x86_64-elf-gcc
+LD = x86_64-elf-ld
+ASM = nasm
+QEMU = qemu-system-x86_64
 
-s = src
-sk = $(s)/kernel
-inc = $(s)/include
-t = target
+KERNEL_ENTRY_POINT_PHY_ADDR = 0x1000
 
-CC = g++
+CFLAGS = -c -I $(INC_DIR) -fno-builtin -Wall -m32
+LDFLAGS = -melf_i386 -Ttext $(KERNEL_ENTRY_POINT_PHY_ADDR)
+ASMFLAGS = -f elf
 
-CCPARAM = -I $(inc) -c
+IMG_MOUNT_DIR = /Volumes/ostest
 
-objs = $(t)/util.o $(t)/main.o $(t)/shell.o $(t)/mm.o
+# Source file directories
+SRC_DIR = src
+OBJ_DIR = obj
+INC_DIR = include
 
-$(t)/mm.o: $(sk)/mm.cpp
-	mkdir -p $(t)
-	$(CC) $< $(CCPARAM) -o $@
+# Source files
+ASM_SRC = $(wildcard $(SRC_DIR)/*.asm)
+C_SRC = $(wildcard $(SRC_DIR)/*.c)
 
-$(t)/util.o: $(sk)/util.cpp
-	mkdir -p $(t)
-	$(CC) $< $(CCPARAM) -o $@
+# Object files
+ASM_OBJ = $(patsubst $(SRC_DIR)/%.asm,$(OBJ_DIR)/%.o,$(ASM_SRC))
+C_OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(C_SRC))
 
-$(t)/main.o: $(sk)/main.cpp	
-	mkdir -p $(t)
-	$(CC) $< $(CCPARAM) -o $@
+# Final output file
+BOOTLOADER_OUTPUT = bootloader.bin
+KERNEL_OUTPUT = kernel.bin
+OS_IMAGE = ostest.img
 
-$(t)/shell.o: $(sk)/shell.cpp
-	mkdir -p $(t)
-	$(CC) $< $(CCPARAM) -o $@
+all: $(BOOTLOADER_OUTPUT) $(KERNEL_OUTPUT)
 
-LettleOS: $(objs)
-	$(CC) $(objs) -o $@
+image: all
+	dd if=/dev/zero of=$(OS_IMAGE) bs=512 count=2880
+	dd if=$(BOOTLOADER_OUTPUT) of=$(OS_IMAGE) bs=512 count=1 conv=notrunc
+	sudo mount -t nfs -o loop $(OS_IMAGE) $(IMG_MOUNT_DIR)
+	sudo cp $(KERNEL_OUTPUT) $(IMG_MOUNT_DIR)
+	sudo sync
+	sudo umount $(IMG_MOUNT_DIR)
 
-all: LettleOS
+run: image
+	$(QEMU) -drive file=$(OS_IMAGE),if=floppy
+
+nop:
+	@echo "all          编译所有文件"
+	@echo "image        写入image镜像文件"
+	@echo "clean        清理所有编译文件"
+	@echo "run          用qemu启动虚拟机"
+
+$(BOOTLOADER_OUTPUT): boot/bootloader.asm
+	$(ASM) $< -o $@
+
+$(KERNEL_OUTPUT): $(ASM_OBJ) $(C_OBJ)
+	$(LD) $(LDFLAGS) -o $@ $^
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm
+	$(ASM) $(ASMFLAGS) $< -o $@
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -f $(OBJ_DIR)/*.o $(BOOTLOADER_OUTPUT) $(OS_IMAGE) $(KERNEL_OUTPUT)
