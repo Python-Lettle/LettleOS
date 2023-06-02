@@ -15,7 +15,7 @@ IMG_MOUNT_DIR = /Volumes/LettleOS
 # Source file directories
 SRC_DIR = src
 OBJ_DIR = obj
-INC_DIR = include
+INC_DIR = libs
 
 # Source files
 ASM_SRC = $(wildcard $(SRC_DIR)/*.asm)
@@ -55,10 +55,9 @@ nop:
 	@echo "clean        清理所有编译文件"
 	@echo "run          用qemu启动虚拟机"
 
-$(BOOT_BIN): boot/boot.asm
-	$(ASM) -I $(INC_DIR) $< -o $@
-$(LOADER_BIN): boot/loader.asm
-	$(ASM) -I $(INC_DIR) $< -o $@
+$(BOOT_BIN): boot/boot.asm boot/loader.c
+	$(ASM) -I $(INC_DIR) boot/boot.asm -o $@
+	$(CC) $(CFLAGS) boot/loader.c -o 
 
 $(KERNEL_BIN): $(ASM_OBJ) $(C_OBJ)
 	$(LD) $(LDFLAGS) -o $@ $^
