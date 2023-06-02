@@ -6,11 +6,11 @@ QEMU = qemu-system-x86_64
 
 KERNEL_ENTRY_POINT_PHY_ADDR = 0x1000
 
-CFLAGS = -c -I $(INC_DIR) -fno-builtin -Wall -m32
+CFLAGS = -c -I $(INC_DIR) -fno-builtin -Wall -m32 -Os
 LDFLAGS = -melf_i386 -Ttext $(KERNEL_ENTRY_POINT_PHY_ADDR)
-ASMFLAGS = -f elf
+ASMFLAGS = -f elf -I $(INC_DIR)
 
-IMG_MOUNT_DIR = /Volumes/ostest
+IMG_MOUNT_DIR = /Volumes/LettleOS
 
 # Source file directories
 SRC_DIR = src
@@ -26,19 +26,25 @@ ASM_OBJ = $(patsubst $(SRC_DIR)/%.asm,$(OBJ_DIR)/%.o,$(ASM_SRC))
 C_OBJ = $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(C_SRC))
 
 # Final output file
-BOOTLOADER_OUTPUT = bootloader.bin
-KERNEL_OUTPUT = kernel.bin
-OS_IMAGE = ostest.img
+BOOT_BIN = boot.bin
+LOADER_BIN = loader.bin
+KERNEL_BIN = kernel.bin
+OS_IMAGE = LettleOS.img
 
-all: $(BOOTLOADER_OUTPUT) $(KERNEL_OUTPUT)
+all: $(BOOT_BIN) $(KERNEL_BIN) $(LOADER_BIN)
+
+# disk:
+# 	dd if=/dev/zero of=$(OS_IMAGE) bs=512 count=2880
 
 image: all
-	dd if=/dev/zero of=$(OS_IMAGE) bs=512 count=2880
-	dd if=$(BOOTLOADER_OUTPUT) of=$(OS_IMAGE) bs=512 count=1 conv=notrunc
-	sudo mount -t nfs -o loop $(OS_IMAGE) $(IMG_MOUNT_DIR)
-	sudo cp $(KERNEL_OUTPUT) $(IMG_MOUNT_DIR)
-	sudo sync
-	sudo umount $(IMG_MOUNT_DIR)
+	dd if=$(BOOT_BIN) of=$(OS_IMAGE) bs=512 count=1 conv=notrunc
+	dd if=$(LOADER_BIN) of=$(OS_IMAGE) bs=512 count=16 seek=2 conv=notrunc
+	dd if=$(LOADER_BIN) of=$(OS_IMAGE) bs=512 count=16 seek=18 conv=notrunc
+
+	# sudo mount -t fat12 -o loop $(OS_IMAGE) $(IMG_MOUNT_DIR)
+	# sudo cp $(KERNEL_BIN) $(IMG_MOUNT_DIR)
+	# sudo sync
+	# sudo umount $(IMG_MOUNT_DIR)
 
 run: image
 	$(QEMU) -drive file=$(OS_IMAGE),if=floppy
@@ -49,10 +55,12 @@ nop:
 	@echo "clean        清理所有编译文件"
 	@echo "run          用qemu启动虚拟机"
 
-$(BOOTLOADER_OUTPUT): boot/bootloader.asm
-	$(ASM) $< -o $@
+$(BOOT_BIN): boot/boot.asm
+	$(ASM) -I $(INC_DIR) $< -o $@
+$(LOADER_BIN): boot/loader.asm
+	$(ASM) -I $(INC_DIR) $< -o $@
 
-$(KERNEL_OUTPUT): $(ASM_OBJ) $(C_OBJ)
+$(KERNEL_BIN): $(ASM_OBJ) $(C_OBJ)
 	$(LD) $(LDFLAGS) -o $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.asm
@@ -62,4 +70,4 @@ $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJ_DIR)/*.o $(BOOTLOADER_OUTPUT) $(OS_IMAGE) $(KERNEL_OUTPUT)
+	rm -f $(OBJ_DIR)/*.o $(BOOT_BIN) $(OS_IMAGE) $(KERNEL_BIN) $(LOADER_BIN)
