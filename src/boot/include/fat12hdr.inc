@@ -1,11 +1,4 @@
-; Copyright (C) 2007 Free Software Foundation, Inc.
-; See the copyright notice in the file /usr/LICENSE.
-; Created by flyan on 2019/11/9.
-; QQ: 1341662010
-; QQ-Group:909830414
-; gitee: https://gitee.com/flyanh/
-;
-;
+; Created by Lettle on 2023/6/16.
 ; ----------------------------------------------------------------------
 ; FAT12 磁盘的头,启动盘使用FAT12文件系统,FAT12比较简单,且可以为后边的文件系统学习打下基础
 ; ----------------------------------------------------------------------
