@@ -10,9 +10,13 @@ LOADER_SEG      equ 0x9000
 ; LOADER加载到的偏移地址
 LOADER_OFFSET   equ 0x100
 
-.set PROT_MODE_CSEG,        0x8                     # kernel code segment selector
-.set PROT_MODE_DSEG,        0x10                    # kernel data segment selector
-.set CR0_PE_ON,             0x1                     # protected mode enable flag
+; kernel code segment selector
+PROT_MODE_CSEG  equ       0x8
+; kernel data segment selector
+PROT_MODE_DSEG  equ       0x10
+; protected mode enable flag
+CR0_PE_ON       equ       0x1
+
 ;================================================================================================
 BaseOfStack		equ	07c00h	; Boot状态下堆栈基地址(栈底, 从这个位置向低地址生长)
 ;================================================================================================
@@ -23,6 +27,7 @@ BaseOfStack		equ	07c00h	; Boot状态下堆栈基地址(栈底, 从这个位置�
 ;================================================================================================
 ; 程序入口
 ;----------------------------------------------------------------------------
+[global BOOT_START]
 BOOT_START:
     ; 寄存器复位(清零)
     xor ax, ax          ; ax置零
@@ -38,28 +43,24 @@ BOOT_START:
     mov	dx, 0x0184f		; 右下角: (80, 50)
     int	0x10		    ; int 10h
 
-    ; 显示字符串 "Booting..."
-    mov	dh, 0			; "Booting..."
-    call	DispStr		; 显示字符串
-
     ; 软驱复位
     xor ah, ah          ; xor:异或，ah = 0
     xor dl, dl          ; dl = 0
     int 0x13
-PROTECT_MODE:
+IN_PROTECT_MODE:
     ;----------------------------------------------------------------------------
     ; 进入保护模式必须有 GDT 全局描述符表, 加载 gdtr
-    lgdt	[gdt_descriptor]
+    ; lgdt	[gdt_descriptor]
 
     ; 此时中断向量表未建立(32位保护模式下)
 	; 禁止中断，防止出错
     cli
-
+SET_A20:
     ; 打开地址线A20，不打开也可以进入保护模式，但内存寻址能力受限（1MB）
     in al, 92h          ; 南桥芯片的端口
     or al, 00000010b
     out 92h, al
-
+JUMP_PM:
     ; 设置cr0的第0位：PE（保护模式标志）为1
     mov eax, cr0
     or 	eax, 1
@@ -67,7 +68,7 @@ PROTECT_MODE:
 
     ; 5 真正进32位入保护模式！前面的4步已经进入了保护模式
     ; 	现在只需要跳入到一个32位代码段就可以真正进入32位保护模式了！
-    jmp dword SelectorCode:PM_32_START
+    jmp dword SelectorCode
 
 ; ------------------------------------------------------------------
 ; Define the Global Descriptor Table (GDT) for Bootstrap
@@ -97,9 +98,10 @@ gdt_descriptor:
     dw gdt_end - gdt_start - 1                                  ; GDT 段界限
     dd gdt_start                                                ; GDT 基址
 ; GDT选择子 ------------------------------------------------------------------
+[global SelectorCode]
+[global SelectorData]
 SelectorCode        equ gdt_code_seg - gdt_start             ; 代码段选择子
 SelectorData        equ gdt_data_seg - gdt_start             ; 数据段选择子
-SelectorVideo       equ LABEL_DESC_VIDEO - LABEL_GDT | SA_RPL3  ; 视频段选择子，特权级3（用户特权级）
 
 ;================================================================================================
 ; 32 位代码段
@@ -107,6 +109,9 @@ SelectorVideo       equ LABEL_DESC_VIDEO - LABEL_GDT | SA_RPL3  ; 视频段选�
 ;================================================================================================
 [bits 32]
 align 32
+
+[extern _kernel_main]
+
 PM_32_START:
     ; 设置保护模式数据段寄存器
     mov ax, SelectorData
@@ -115,11 +120,11 @@ PM_32_START:
     mov fs, ax
     mov gs, ax
     mov ss, ax
-    ; 设置栈指针, 栈区域为0--BOOT_START(0x7c00)
+    ; 设置栈指针, 栈区域为0--0x7c00
     mov ebp, 0x0
-    mov esp, BOOT_START
+    mov esp, 0x7c00
     ; 跳入C语言
-    call kernel_main
+    call _kernel_main
 
 spin:
     hlt

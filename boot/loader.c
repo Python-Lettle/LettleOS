@@ -11,6 +11,8 @@
 #define SECTSIZE 512
 #define ELFHDR   ()
 
+extern void kernel_main(void);
+
 static void waitdisk(void)
 {
     
