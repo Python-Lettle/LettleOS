@@ -1,0 +1,17 @@
+# Object Files
+*.o
+*.obj
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+*.img
+*.iso
+
+target/*
+
+.idea
+
+LettleOS
