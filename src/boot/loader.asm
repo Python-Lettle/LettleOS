@@ -1,66 +1,35 @@
-; ==================================================
-org 0x7c00      ; 程序开始处
-; ==================================================
-; LOADER 加载到的段地址
-LOADER_SEG  equ 0x90000
-LOADER_OFFSET   equ 0x100
-; ==================================================
-; Boot 栈底
-StackBase   equ 0x7c00
-; ==================================================
-; BPB(BIOS Parameter Block) 中需要的跳转结构
-; BS_jmpBoot: 一个短跳转指令, 长度3
-    jmp LABEL_START
+org 0x100
+
+    jmp START
     nop
 
-    ; 导入FAT12头以及相关信息
-    %include "fat12hdr.inc"
+; Loader 栈底
+StackBase   equ 0x100
 
-; ==================================================
-; 程序开始入口
-; --------------------------------------------------
-LABEL_START:
+START:
     ; 寄存器复位
     mov ax, cs
     mov ds, ax
     mov ss, ax
     mov sp, StackBase
 
-    ; 清理屏幕输出
-    mov ax, 0x0600          ; AH = 6, AL = 0h
-    mov bx, 0x0700          ; 黑底白字 (BL = 07h)
-    mov cx, 0               ; 左上角: (0,0)
-    mov dx, 0x0184f         ; 右下角: (80,50)
-    int 0x10                ; int 10h
-
-    ; 显示 "Booting....."
-    mov dh, 0               ; "Booting....."
+    ; 显示 "Hello Loader!"
+    mov dh, 0               ; "Hello Loader!"
     call DispStr            ; 显示字符串
-
-    ; 操作软盘前 将软驱复位
-    xor ah, ah
-    xor dl, dl              ; dl = 0 软盘A
-    int 0x13
-
-    ; 在软盘A中寻找文件 loader.bin
-    mov word [wSector], SectorNoOfRootDirectory
 
     jmp $
 
 ; ==================================================
-LoaderFileName      db  "LOADER  BIN",  0   ; LOADER.BIN文件名
-wRootDirSizeLoop    dw  RootDirSectors      ; 根目录占用的扇区数,在循环中逐步递减至0
-wSector             dw  0                   ; 要读取的扇区号
-
+LoaderFileName  db  "LOADER  BIN",  0   ; LOADER.BIN文件名
 ; db 定义一个字节  dw 字word  dd 是双字double word
-MessageLength   equ 12
-BootMessage:    db  "Booting....."
+MessageLength   equ 13
+Message:        db  "Hello Loader!"
 
 ; ==================================================
 DispStr:
     mov ax, MessageLength
     mul dh
-    add ax, BootMessage
+    add ax, Message
 
     ; ES:BP = 串地址
     mov bp, ax
@@ -117,10 +86,3 @@ ReadSector:
 	pop	bp
 
 	ret
-
-
-; ==================================================
-; times n,m     n: 重复定义多少次 m: 定义的数据
-times 510-($-$$)    db  0
-dw 0xAA55       ; 引导扇区标志
-; ==================================================
