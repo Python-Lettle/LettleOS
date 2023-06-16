@@ -1,17 +1,22 @@
 # LettleOS
 
 #### 介绍
-这个分支是使用C++对Lettle OS Shell 蓝图的实现
 
-#### 安装教程
+Lettle Kernel 参考了MINIX和TINIX
 
-1.  make all
+这个分支是使用ASM、C对Lettle Kernel 的实现
 
-#### 使用说明
+#### 
 
-#### 参与贡献
+## 快速开始
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+```shell
+make run
+```
+
+
+
+## 参考文献
+
+1. intel-8086-bios-and-dos-interrupts-ibmpc: [Intel 8086 bios and dos interrupts Ibmpc - Th e list of a ll in t e r r u p t s t h a t a r e cu r r - Studocu](https://www.studocu.com/ph/document/bohol-island-state-university/computer-engineering/intel-8086-bios-and-dos-interrupts-ibmpc/8810084)
+2. 自己动手写操作系统

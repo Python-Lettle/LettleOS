@@ -1,32 +1,27 @@
 
+GCC = gcc
+GPP = g++
+QEMU = qemu-system-i386
+
+
 s = src
-sk = $(s)/kernel
-inc = $(s)/include
+sb = $(s)/boot
+
 t = target
 
-CC = g++
+IMG_NAME=LettleOS.img
 
-CCPARAM = -I $(inc) -c
 
-objs = $(t)/util.o $(t)/main.o $(t)/shell.o $(t)/mm.o
 
-$(t)/mm.o: $(sk)/mm.cpp
+$(t)/boot.bin: $(sb)/boot.asm
 	mkdir -p $(t)
-	$(CC) $< $(CCPARAM) -o $@
+	nasm $< -o $@
 
-$(t)/util.o: $(sk)/util.cpp
-	mkdir -p $(t)
-	$(CC) $< $(CCPARAM) -o $@
+all: image
 
-$(t)/main.o: $(sk)/main.cpp	
-	mkdir -p $(t)
-	$(CC) $< $(CCPARAM) -o $@
+run: all
+	$(QEMU) -no-reboot -parallel stdio -hda $(IMG_NAME) -serial null
 
-$(t)/shell.o: $(sk)/shell.cpp
-	mkdir -p $(t)
-	$(CC) $< $(CCPARAM) -o $@
-
-LettleOS: $(objs)
-	$(CC) $(objs) -o $@
-
-all: LettleOS
+image: $(t)/boot.bin
+	dd if=/dev/zero of=$(IMG_NAME) bs=512 count=2880
+	dd if=$(t)/boot.bin of=$(IMG_NAME) bs=512 count=1 conv=notrunc
