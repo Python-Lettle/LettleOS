@@ -23,8 +23,8 @@ i = include
 
 # 各种编译用程序
 ASM = nasm
-CC  = gcc
-LD  = ld
+CC  = x86_64-elf-gcc
+LD  = x86_64-elf-ld
 
 ASMFlagsOfBoot   = -I $(sbi)
 ASMFlagsOfKernel = -f elf -I $(sk)
@@ -42,26 +42,21 @@ Objs = $(KernelObjs)
 
 nop:
 	@echo "all          编译所有文件"
-	@echo "write        写入image镜像文件"
+	@echo "image        创建image镜像文件"
 	@echo "clean        清理所有编译文件"
 	@echo "run          用qemu启动虚拟机"
 
 all: $(LettleOSBoot) $(LettleOSKernel)
 
-write: $(FD) $(tb)/boot.bin
+image: $(tb)/boot.bin $(tb)/loader.bin
+	dd if=/dev/zero of=$(FD) bs=512 count=2880
 	dd if=$(tb)/boot.bin of=$(FD) bs=512 count=1 conv=notrunc
 
-run: $(FD)
+run:
 	@qemu-system-i386 -drive file=$(FD),if=floppy
-	@echo "你还可以使用Vbox等虚拟机挂载LOS.img软盘，即可开始运行！"
 
 clean:
-	rm -f $(tb)/*
-	rm -f $(tk)/*
-
-# 软盘创建规则
-$(FD):
-	dd if=/dev/zero of=$(FD) bs=512 count=2880
+	rm -f $(tb)/* $(tk)/* $(FD)
 
 #==============================================================================
 # Boot

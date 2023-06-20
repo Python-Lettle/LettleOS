@@ -15,3 +15,4 @@ target/kernel/*
 target/lib/*
 
 .idea
+.DS_Store
